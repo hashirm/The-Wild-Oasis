@@ -8,8 +8,7 @@ import Button from "../../ui/Button";
 import FileInput from "../../ui/FileInput";
 import Textarea from "../../ui/Textarea";
 import { useForm } from "react-hook-form";
-import { createEditCabin } from "../../services/apiCabins";
-// import { id } from "date-fns/locale";
+import { createCabin } from "../../services/apiCabins";
 
 const FormRow = styled.div`
   display: grid;
@@ -47,46 +46,23 @@ const Error = styled.span`
   color: var(--color-red-700);
 `;
 
-  function CreateCabinForm({cabinToEdit={}}) {
-
-    const {id:editId, ...editValues} = cabinToEdit;
-    const isEditSession = Boolean(editId);
-
-
-    const {register, handleSubmit, reset, getValues, formState} = useForm({defaultValues:isEditSession ? editValues : {}});
+  function CreateCabinForm() {
+    const {register, handleSubmit, reset, getValues, formState} = useForm();
     const {errors} = formState;
 
     const queryClient = useQueryClient();
-    const {mutate : createCabin, isPending:isCreating} = useMutation({
-        mutationFn:createEditCabin,
+    const {mutate, isPending:isCreating} = useMutation({
+        mutationFn:createCabin,
         onSuccess: () => {
           toast.success("cabin is successfully created");
           queryClient.invalidateQueries({queryKey:['cabin']});
           reset()    
         },
         onError: (err) => toast.error(err.message)
-    })
-
-   
-
-    const {mutate : editCabin, isPending:isEditing} = useMutation({
-      mutationFn:({newCabinData, id}) => createEditCabin(newCabinData, id),
-      onSuccess: () => {
-        toast.success("cabin is successfully Updated");
-        queryClient.invalidateQueries({queryKey:['cabin']});
-        reset()    
-      },
-      onError: (err) => toast.error(err.message)
   })
 
-  const isWorking = isCreating || isEditing;
-
   function onSubmit(data){
-    // console.log(data);
-    const image = typeof data.image === "string" ? data.image : data.image[0];
-    if(isEditSession) editCabin({newCabinData:{...data, image}, id: editId})
-    else
-      createCabin({...data, image:data.image[0]});
+    mutate({...data, image:data.image[0]});
     
   }
 
@@ -137,7 +113,7 @@ const Error = styled.span`
 
       <FormRow>
         <Label htmlFor="image">Cabin photo</Label>
-        <FileInput id="image" accept="image/*" { ...register('image', { required: isEditSession ? false : "This field is required" }) } />
+        <FileInput id="image" accept="image/*" { ...register('image', { required:"This field is required" }) } />
       </FormRow>
 
       <FormRow>
@@ -145,9 +121,7 @@ const Error = styled.span`
         <Button variation="secondary" type="reset">
           Cancel
         </Button>
-        <Button disabled={isWorking}>{
-          isEditSession ? 'Edit Cabin' : 'Create New Cabin' 
-          }</Button>
+        <Button disabled={isCreating}>create cabin</Button>
       </FormRow>
     </Form>
   );
